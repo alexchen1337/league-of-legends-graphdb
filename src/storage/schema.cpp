@@ -21,6 +21,13 @@ void migrate(Database& db) {
     )SQL");
 
     db.exec(R"SQL(
+        CREATE TABLE IF NOT EXISTS teams(
+            team_id TEXT PRIMARY KEY,
+            name TEXT
+        );
+    )SQL");
+
+    db.exec(R"SQL(
         CREATE TABLE IF NOT EXISTS matches(
             match_id TEXT PRIMARY KEY,
             region TEXT,
@@ -49,6 +56,24 @@ void migrate(Database& db) {
             PRIMARY KEY(a, b)
         );
     )SQL");
+
+    db.exec(R"SQL(
+        CREATE TABLE IF NOT EXISTS nodes(
+            id TEXT PRIMARY KEY,
+            type TEXT,
+            label TEXT
+        );
+    )SQL");
+
+    db.exec(R"SQL(
+        CREATE TABLE IF NOT EXISTS edges(
+            src TEXT,
+            dst TEXT,
+            type TEXT,
+            weight REAL,
+            PRIMARY KEY(src, dst, type)
+        );
+    )SQL");
 }
 
 void upsert_player(Database& db, const Player& p) {
@@ -74,6 +99,19 @@ void upsert_champion(Database& db, const Champion& c) {
     }
     sqlite3_bind_int(stmt, 1, c.key);
     sqlite3_bind_text(stmt, 2, c.name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+}
+
+void upsert_team(Database& db, const Team& t) {
+    sqlite3_stmt* stmt{};
+    const char* sql = "INSERT INTO teams(team_id,name) VALUES(?,?) "
+                      "ON CONFLICT(team_id) DO UPDATE SET name=excluded.name;";
+    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("prepare failed teams");
+    }
+    sqlite3_bind_text(stmt, 1, t.team_id.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, t.name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 }
@@ -123,6 +161,35 @@ SynergyStats load_synergy(Database& db, const std::string& a, const std::string&
     }
     sqlite3_finalize(stmt);
     return stats;
+}
+
+void upsert_node(Database& db, const Node& node) {
+    sqlite3_stmt* stmt{};
+    const char* sql = "INSERT INTO nodes(id,type,label) VALUES(?,?,?) "
+                      "ON CONFLICT(id) DO UPDATE SET type=excluded.type, label=excluded.label;";
+    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("prepare failed nodes");
+    }
+    sqlite3_bind_text(stmt, 1, node.id.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, node.type.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, node.label.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+}
+
+void insert_edge(Database& db, const Edge& edge) {
+    sqlite3_stmt* stmt{};
+    const char* sql = "INSERT INTO edges(src,dst,type,weight) VALUES(?,?,?,?) "
+                      "ON CONFLICT(src,dst,type) DO UPDATE SET weight=excluded.weight;";
+    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("prepare failed edges");
+    }
+    sqlite3_bind_text(stmt, 1, edge.src.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, edge.dst.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, edge.type.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_double(stmt, 4, edge.weight);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
 }
 
 } // namespace storage

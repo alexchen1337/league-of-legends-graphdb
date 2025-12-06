@@ -103,6 +103,7 @@ std::vector<MatchRecord> parse_matches(const std::string& html, const std::strin
         pr.player_id = (*it)[1].str();
         pr.champion_key = std::stoi((*it)[2].str());
         pr.win = (*it)[3] == "1";
+        pr.team_id = "";
         pr.role = "unknown";
         matches[match_idx].participants.push_back(pr);
         ++it;

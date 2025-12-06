@@ -17,6 +17,8 @@ int main(int argc, char** argv) {
     std::string region = argc > 2 ? argv[2] : "na";
     std::string queue = argc > 3 ? argv[3] : "solo";
     std::string url = argc > 4 ? argv[4] : "";
+    std::string path_start = argc > 5 ? argv[5] : "";
+    std::string path_goal = argc > 6 ? argv[6] : "";
 
     try {
         Database db(db_path);
@@ -37,6 +39,18 @@ int main(int argc, char** argv) {
         for (const auto& e : duos) {
             double wr = e.games == 0 ? 0.0 : static_cast<double>(e.wins) / e.games;
             std::cout << e.a << " + " << e.b << " games=" << e.games << " winrate=" << wr << "\n";
+        }
+
+        if (!path_start.empty() && !path_goal.empty()) {
+            auto adj = analysis::build_adjacency(db);
+            auto path = analysis::bfs_path(adj, path_start, path_goal);
+            if (path.empty()) {
+                std::cout << "no path between " << path_start << " and " << path_goal << "\n";
+            } else {
+                std::cout << "path:";
+                for (const auto& node : path) std::cout << " " << node;
+                std::cout << "\n";
+            }
         }
     } catch (const std::exception& ex) {
         std::cerr << "error: " << ex.what() << "\n";

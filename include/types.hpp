@@ -11,6 +11,11 @@ struct Player {
     std::string region;
 };
 
+struct Team {
+    std::string team_id;
+    std::string name;
+};
+
 struct Champion {
     std::int32_t key;
     std::string name;
@@ -19,6 +24,7 @@ struct Champion {
 struct ParticipantRecord {
     std::string player_id;
     std::int32_t champion_key{};
+    std::string team_id;
     std::string role;
     bool win{};
 };
@@ -41,6 +47,19 @@ struct SynergyStats {
     int games{};
     int wins{};
     double win_rate() const { return games == 0 ? 0.0 : static_cast<double>(wins) / games; }
+};
+
+struct Node {
+    std::string id;
+    std::string type;
+    std::string label;
+};
+
+struct Edge {
+    std::string src;
+    std::string dst;
+    std::string type;
+    double weight{1.0};
 };
 
 struct FetchConfig {

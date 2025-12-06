@@ -14,10 +14,10 @@ int main() {
     m.region = "na";
     m.queue = "solo";
     m.participants = {
-        {"p1", 1, "top", true},
-        {"p2", 2, "jg", true},
-        {"p3", 3, "mid", false},
-        {"p4", 4, "bot", false},
+        {"p1", 1, "t1", "top", true},
+        {"p2", 2, "t1", "jg", true},
+        {"p3", 3, "t2", "mid", false},
+        {"p4", 4, "t2", "bot", false},
     };
 
     pipeline::ingest(db, {m});
@@ -27,6 +27,9 @@ int main() {
 
     assert(!duos.empty());
     assert(duos[0].games == 1);
+    auto adj = analysis::build_adjacency(db);
+    auto path = analysis::bfs_path(adj, "t1", "m1");
+    assert(!path.empty());
     std::cout << "sanity ok\n";
     return 0;
 }

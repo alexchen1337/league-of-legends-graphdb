@@ -9,11 +9,25 @@ void ingest(Database& db, const std::vector<MatchRecord>& matches) {
     db.transaction([&]() {
         for (const auto& match : matches) {
             storage::insert_match(db, match);
+            Node match_node{match.match_id, "match", match.match_id};
+            storage::upsert_node(db, match_node);
             // build pairwise edges
             for (size_t i = 0; i < match.participants.size(); ++i) {
                 for (size_t j = i + 1; j < match.participants.size(); ++j) {
                     const auto& a = match.participants[i];
                     const auto& b = match.participants[j];
+                    storage::upsert_node(db, Node{a.player_id, "player", a.player_id});
+                    storage::upsert_node(db, Node{b.player_id, "player", b.player_id});
+                    if (!a.team_id.empty()) {
+                        storage::upsert_node(db, Node{a.team_id, "team", a.team_id});
+                        storage::insert_edge(db, Edge{a.team_id, a.player_id, "roster", 1.0});
+                    }
+                    if (!b.team_id.empty()) {
+                        storage::upsert_node(db, Node{b.team_id, "team", b.team_id});
+                        storage::insert_edge(db, Edge{b.team_id, b.player_id, "roster", 1.0});
+                    }
+                    storage::insert_edge(db, Edge{a.player_id, match.match_id, "played", 1.0});
+                    storage::insert_edge(db, Edge{b.player_id, match.match_id, "played", 1.0});
                     sqlite3_stmt* stmt{};
                     const char* sql = "INSERT INTO synergy_edges(a,b,games,wins) VALUES(?,?,1,?) "
                                       "ON CONFLICT(a,b) DO UPDATE SET games=synergy_edges.games+1, "

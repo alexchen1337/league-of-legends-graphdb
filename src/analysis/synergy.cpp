@@ -50,5 +50,48 @@ std::vector<SynergyEdge> top_duos(const SynergyMap& map, int limit, int min_game
     return edges;
 }
 
+Adjacency build_adjacency(Database& db) {
+    Adjacency adj;
+    const char* sql = "SELECT src,dst,weight FROM edges;";
+    sqlite3_stmt* stmt{};
+    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error("prepare failed select edges");
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        std::string src = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        std::string dst = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        double w = sqlite3_column_double(stmt, 2);
+        adj[src].push_back({dst, w});
+    }
+    sqlite3_finalize(stmt);
+    return adj;
+}
+
+std::vector<std::string> bfs_path(const Adjacency& adj, const std::string& start, const std::string& goal) {
+    std::unordered_map<std::string, std::string> parent;
+    std::vector<std::string> queue;
+    queue.push_back(start);
+    parent[start] = {};
+    size_t idx = 0;
+    while (idx < queue.size()) {
+        auto cur = queue[idx++];
+        if (cur == goal) break;
+        auto it = adj.find(cur);
+        if (it == adj.end()) continue;
+        for (const auto& [next, _] : it->second) {
+            if (parent.count(next)) continue;
+            parent[next] = cur;
+            queue.push_back(next);
+        }
+    }
+    if (!parent.count(goal)) return {};
+    std::vector<std::string> path;
+    for (std::string cur = goal; !cur.empty(); cur = parent[cur]) {
+        path.push_back(cur);
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
 } // namespace analysis
 
