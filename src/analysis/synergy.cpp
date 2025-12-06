@@ -4,24 +4,8 @@
 
 namespace analysis {
 
-SynergyMap build_synergy_map(Database& db) {
-    SynergyMap map;
-    const char* sql = "SELECT a,b,games,wins FROM synergy_edges;";
-    sqlite3_stmt* stmt{};
-    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("prepare failed select synergy_edges");
-    }
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string a = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        std::string b = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        SynergyStats s;
-        s.games = sqlite3_column_int(stmt, 2);
-        s.wins = sqlite3_column_int(stmt, 3);
-        map[a][b] = s;
-        map[b][a] = s;
-    }
-    sqlite3_finalize(stmt);
-    return map;
+SynergyMap build_synergy_map(const GraphStore& store) {
+    return store.synergy();
 }
 
 std::vector<SynergyEdge> top_duos(const SynergyMap& map, int limit, int min_games) {
@@ -50,20 +34,13 @@ std::vector<SynergyEdge> top_duos(const SynergyMap& map, int limit, int min_game
     return edges;
 }
 
-Adjacency build_adjacency(Database& db) {
+Adjacency build_adjacency(const GraphStore& store) {
     Adjacency adj;
-    const char* sql = "SELECT src,dst,weight FROM edges;";
-    sqlite3_stmt* stmt{};
-    if (sqlite3_prepare_v2(db.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("prepare failed select edges");
+    for (const auto& [src, list] : store.adjacency()) {
+        for (const auto& e : list) {
+            adj[src].push_back({e.dst, e.weight});
+        }
     }
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string src = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        std::string dst = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        double w = sqlite3_column_double(stmt, 2);
-        adj[src].push_back({dst, w});
-    }
-    sqlite3_finalize(stmt);
     return adj;
 }
 

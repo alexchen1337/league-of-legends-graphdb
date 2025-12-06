@@ -49,6 +49,8 @@ struct SynergyStats {
     double win_rate() const { return games == 0 ? 0.0 : static_cast<double>(wins) / games; }
 };
 
+using SynergyMap = std::unordered_map<std::string, std::unordered_map<std::string, SynergyStats>>;
+
 struct Node {
     std::string id;
     std::string type;

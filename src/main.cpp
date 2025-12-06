@@ -2,7 +2,7 @@
 #include "pipeline/ingest.hpp"
 #include "scraper/fetcher.hpp"
 #include "scraper/parser.hpp"
-#include "storage/schema.hpp"
+#include "storage/database.hpp"
 #include "types.hpp"
 
 #include <iostream>
@@ -21,8 +21,8 @@ int main(int argc, char** argv) {
     std::string path_goal = argc > 6 ? argv[6] : "";
 
     try {
-        Database db(db_path);
-        storage::migrate(db);
+        GraphStore store(db_path);
+        store.load();
 
         if (!url.empty()) {
             FetchConfig cfg;
@@ -30,11 +30,12 @@ int main(int argc, char** argv) {
             cfg.queue = queue;
             std::string html = scraper::fetch_html(url, cfg);
             auto matches = scraper::parse_matches(html, region, queue);
-            pipeline::ingest(db, matches);
+            pipeline::ingest(store, matches);
+            store.save();
             std::cout << "ingested " << matches.size() << " matches\n";
         }
 
-        auto map = analysis::build_synergy_map(db);
+        auto map = analysis::build_synergy_map(store);
         auto duos = analysis::top_duos(map, 10);
         for (const auto& e : duos) {
             double wr = e.games == 0 ? 0.0 : static_cast<double>(e.wins) / e.games;
@@ -42,7 +43,7 @@ int main(int argc, char** argv) {
         }
 
         if (!path_start.empty() && !path_goal.empty()) {
-            auto adj = analysis::build_adjacency(db);
+            auto adj = analysis::build_adjacency(store);
             auto path = analysis::bfs_path(adj, path_start, path_goal);
             if (path.empty()) {
                 std::cout << "no path between " << path_start << " and " << path_goal << "\n";

@@ -6,7 +6,7 @@
 
 namespace pipeline {
 
-void ingest(Database& db, const std::vector<MatchRecord>& matches);
+void ingest(GraphStore& store, const std::vector<MatchRecord>& matches);
 
 } 
 

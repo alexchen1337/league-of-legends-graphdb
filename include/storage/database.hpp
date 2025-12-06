@@ -1,24 +1,35 @@
 #pragma once
 
-#include <sqlite3.h>
+#include "types.hpp"
 #include <string>
+#include <unordered_map>
 #include <vector>
-#include <functional>
 
-class Database {
+class GraphStore {
 public:
-    explicit Database(const std::string& path);
-    ~Database();
+    explicit GraphStore(const std::string& root);
 
-    Database(const Database&) = delete;
-    Database& operator=(const Database&) = delete;
+    void load();
+    void save() const;
 
-    void exec(const std::string& sql);
-    void transaction(const std::function<void()>& fn);
+    void upsert_player(const Player& p);
+    void upsert_team(const Team& t);
+    void upsert_champion(const Champion& c);
+    void insert_match(const MatchRecord& match);
 
-    sqlite3* handle() { return db_; }
+    const std::unordered_map<std::string, Node>& nodes() const { return nodes_; }
+    const std::unordered_map<std::string, std::vector<Edge>>& adjacency() const { return adjacency_; }
+    const SynergyMap& synergy() const { return synergy_; }
 
 private:
-    sqlite3* db_{};
+    std::string root_;
+    std::unordered_map<std::string, Player> players_;
+    std::unordered_map<std::string, Team> teams_;
+    std::unordered_map<std::string, Champion> champions_;
+    std::unordered_map<std::string, Node> nodes_;
+    std::unordered_map<std::string, std::vector<Edge>> adjacency_;
+    SynergyMap synergy_;
+
+    void add_edge(const Edge& e);
 };
 
