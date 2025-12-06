@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class GraphStore {
@@ -31,5 +32,11 @@ private:
     SynergyMap synergy_;
 
     void add_edge(const Edge& e);
+    void save_nodes() const;
+    void save_edges() const;
+    void save_synergy() const;
+    void load_nodes();
+    void load_edges();
+    void load_synergy();
 };
 
